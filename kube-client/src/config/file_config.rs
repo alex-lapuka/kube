@@ -22,7 +22,7 @@ const CLUSTER_EXTENSION_KEY: &str = "client.authentication.k8s.io/exec";
 /// [`Config`][crate::Config] is the __intended__ developer interface to help create a [`Client`][crate::Client],
 /// and this will handle the difference between in-cluster deployment and local development.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Kubeconfig {
     /// General information to be use for cli interactions
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -60,7 +60,7 @@ pub struct Kubeconfig {
 
 /// Preferences stores extensions for cli.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Preferences {
     /// Enable colors
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -75,7 +75,7 @@ pub struct Preferences {
 
 /// NamedExtension associates name with extension.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedExtension {
     /// Name of extension
     pub name: String,
@@ -88,7 +88,7 @@ pub struct NamedExtension {
 
 /// NamedCluster associates name with cluster.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[non_exhaustive]
 pub struct NamedCluster {
     /// Name of cluster
@@ -149,7 +149,7 @@ pub struct Cluster {
 
 /// NamedAuthInfo associates name with authentication.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedAuthInfo {
     /// Name of the user
     pub name: String,
@@ -273,7 +273,7 @@ impl PartialEq for AuthInfo {
 
 /// AuthProviderConfig stores auth for specified cloud provider.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct AuthProviderConfig {
     /// Name of the auth provider
     pub name: String,
@@ -287,7 +287,7 @@ pub struct AuthProviderConfig {
 
 /// ExecConfig stores credential-plugin configuration.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct ExecConfig {
     /// Preferred input version of the ExecInfo.
     ///
@@ -349,7 +349,7 @@ pub enum ExecInteractiveMode {
 
 /// NamedContext associates name with context.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedContext {
     /// Name of the context
     pub name: String,
@@ -363,7 +363,7 @@ pub struct NamedContext {
 
 /// Context stores tuple of cluster and user information.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Context {
     /// Name of the cluster for this context
     pub cluster: String,
@@ -657,7 +657,7 @@ impl AuthInfo {
 /// Taken from [clientauthentication/types.go#Cluster](https://github.com/kubernetes/client-go/blob/477cb782cf024bc70b7239f0dca91e5774811950/pkg/apis/clientauthentication/types.go#L73-L129)
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct ExecAuthCluster {
     /// The address of the kubernetes cluster (https://hostname:port).
     #[serde(skip_serializing_if = "Option::is_none")]
