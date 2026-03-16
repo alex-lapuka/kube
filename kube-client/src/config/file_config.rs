@@ -23,7 +23,6 @@ const CLUSTER_EXTENSION_KEY: &str = "client.authentication.k8s.io/exec";
 /// and this will handle the difference between in-cluster deployment and local development.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct Kubeconfig {
     /// General information to be use for cli interactions
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -62,7 +61,6 @@ pub struct Kubeconfig {
 /// Preferences stores extensions for cli.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct Preferences {
     /// Enable colors
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -78,7 +76,6 @@ pub struct Preferences {
 /// NamedExtension associates name with extension.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct NamedExtension {
     /// Name of extension
     pub name: String,
@@ -153,7 +150,6 @@ pub struct Cluster {
 /// NamedAuthInfo associates name with authentication.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct NamedAuthInfo {
     /// Name of the user
     pub name: String,
@@ -198,7 +194,6 @@ where
 
 /// AuthInfo stores information to tell cluster who you are.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[non_exhaustive]
 pub struct AuthInfo {
     /// The username for basic authentication to the kubernetes cluster.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -279,7 +274,6 @@ impl PartialEq for AuthInfo {
 /// AuthProviderConfig stores auth for specified cloud provider.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct AuthProviderConfig {
     /// Name of the auth provider
     pub name: String,
@@ -294,7 +288,6 @@ pub struct AuthProviderConfig {
 /// ExecConfig stores credential-plugin configuration.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct ExecConfig {
     /// Preferred input version of the ExecInfo.
     ///
@@ -357,7 +350,6 @@ pub enum ExecInteractiveMode {
 /// NamedContext associates name with context.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct NamedContext {
     /// Name of the context
     pub name: String,
@@ -372,7 +364,6 @@ pub struct NamedContext {
 /// Context stores tuple of cluster and user information.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct Context {
     /// Name of the cluster for this context
     pub cluster: String,
@@ -667,7 +658,6 @@ impl AuthInfo {
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(test, derive(PartialEq))]
-#[non_exhaustive]
 pub struct ExecAuthCluster {
     /// The address of the kubernetes cluster (https://hostname:port).
     #[serde(skip_serializing_if = "Option::is_none")]
