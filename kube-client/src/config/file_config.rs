@@ -78,7 +78,6 @@ pub struct Preferences {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedExtension {
     /// Name of extension
-    #[serde(default)]
     pub name: String,
     /// Additional information for extenders so that reads and writes don't clobber unknown fields
     #[serde(default)]
@@ -93,7 +92,6 @@ pub struct NamedExtension {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedCluster {
     /// Name of cluster
-    #[serde(default)]
     pub name: String,
     /// Information about how to communicate with a kubernetes cluster
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -153,7 +151,6 @@ pub struct Cluster {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct NamedAuthInfo {
     /// Name of the user
-    #[serde(default)]
     pub name: String,
     /// Information that describes identity of the user
     #[serde(rename = "user")]
@@ -278,7 +275,6 @@ impl PartialEq for AuthInfo {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct AuthProviderConfig {
     /// Name of the auth provider
-    #[serde(default)]
     pub name: String,
     /// Auth provider configuration
     #[serde(default)]
@@ -355,7 +351,6 @@ pub enum ExecInteractiveMode {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedContext {
     /// Name of the context
-    #[serde(default)]
     pub name: String,
     /// Associations for the context
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -370,7 +365,6 @@ pub struct NamedContext {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Context {
     /// Name of the cluster for this context
-    #[serde(default)]
     pub cluster: String,
     /// Name of the `AuthInfo` for this context
     pub user: Option<String>,
@@ -1116,7 +1110,7 @@ users:
 "#;
         let cfg: Kubeconfig = serde_yaml::from_str(input).unwrap();
 
-        // Verify extra fields are accessible through the public accessor methods
+        // Verify extra fields are accessible via the extra field maps
         assert_eq!(
             cfg.extra.get("customTopLevel").and_then(|v| v.as_str()),
             Some("should-survive")
