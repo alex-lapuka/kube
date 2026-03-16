@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fs, io,
     path::{Path, PathBuf},
 };
@@ -23,6 +23,7 @@ const CLUSTER_EXTENSION_KEY: &str = "client.authentication.k8s.io/exec";
 /// and this will handle the difference between in-cluster deployment and local development.
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq))]
+#[non_exhaustive]
 pub struct Kubeconfig {
     /// General information to be use for cli interactions
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,10 +54,13 @@ pub struct Kubeconfig {
     #[serde(rename = "apiVersion")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_version: Option<String>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// Preferences stores extensions for cli.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Preferences {
     /// Enable colors
@@ -65,16 +69,24 @@ pub struct Preferences {
     /// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<Vec<NamedExtension>>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// NamedExtension associates name with extension.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedExtension {
     /// Name of extension
+    #[serde(default)]
     pub name: String,
     /// Additional information for extenders so that reads and writes don't clobber unknown fields
+    #[serde(default)]
     pub extension: serde_json::Value,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// NamedCluster associates name with cluster.
@@ -82,10 +94,14 @@ pub struct NamedExtension {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedCluster {
     /// Name of cluster
+    #[serde(default)]
     pub name: String,
     /// Information about how to communicate with a kubernetes cluster
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cluster: Option<Cluster>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// Cluster stores information to connect Kubernetes cluster.
@@ -128,6 +144,9 @@ pub struct Cluster {
     /// Additional information for extenders so that reads and writes don't clobber unknown fields
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<Vec<NamedExtension>>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// NamedAuthInfo associates name with authentication.
@@ -135,11 +154,15 @@ pub struct Cluster {
 #[cfg_attr(test, derive(PartialEq))]
 pub struct NamedAuthInfo {
     /// Name of the user
+    #[serde(default)]
     pub name: String,
     /// Information that describes identity of the user
     #[serde(rename = "user")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_info: Option<AuthInfo>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 fn serialize_secretstring<S>(pw: &Option<SecretString>, serializer: S) -> Result<S::Ok, S::Error>
@@ -239,6 +262,9 @@ pub struct AuthInfo {
     /// Specifies a custom exec-based authentication plugin for the kubernetes cluster.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exec: Option<ExecConfig>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -249,18 +275,22 @@ impl PartialEq for AuthInfo {
 }
 
 /// AuthProviderConfig stores auth for specified cloud provider.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct AuthProviderConfig {
     /// Name of the auth provider
+    #[serde(default)]
     pub name: String,
     /// Auth provider configuration
     #[serde(default)]
     pub config: HashMap<String, String>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// ExecConfig stores credential-plugin configuration.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct ExecConfig {
     /// Preferred input version of the ExecInfo.
@@ -304,6 +334,9 @@ pub struct ExecConfig {
     /// Should be used only when `provide_cluster_info` is True.
     #[serde(skip)]
     pub cluster: Option<ExecAuthCluster>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// ExecInteractiveMode define the interactity of the child process
@@ -323,10 +356,14 @@ pub enum ExecInteractiveMode {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct NamedContext {
     /// Name of the context
+    #[serde(default)]
     pub name: String,
     /// Associations for the context
     #[serde(skip_serializing_if = "Option::is_none")]
     pub context: Option<Context>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// Context stores tuple of cluster and user information.
@@ -334,6 +371,7 @@ pub struct NamedContext {
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Context {
     /// Name of the cluster for this context
+    #[serde(default)]
     pub cluster: String,
     /// Name of the `AuthInfo` for this context
     pub user: Option<String>,
@@ -343,6 +381,9 @@ pub struct Context {
     /// Additional information for extenders so that reads and writes don't clobber unknown fields
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<Vec<NamedExtension>>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 const KUBECONFIG: &str = "KUBECONFIG";
@@ -468,6 +509,10 @@ impl Kubeconfig {
         append_new_named(&mut self.contexts, next.contexts, |x| &x.name);
         self.current_context = self.current_context.or(next.current_context);
         self.extensions = self.extensions.or(next.extensions);
+        // Preserve unknown fields from subsequent configs (first value wins)
+        for (key, value) in next.extra {
+            self.extra.entry(key).or_insert(value);
+        }
         Ok(self)
     }
 }
@@ -602,6 +647,9 @@ pub struct ExecAuthCluster {
     /// This can be anything
     #[serde(skip_serializing_if = "Option::is_none")]
     pub config: Option<serde_json::Value>,
+
+    #[serde(flatten)]
+    pub(crate) extra: BTreeMap<String, serde_json::Value>,
 }
 
 impl TryFrom<&Cluster> for ExecAuthCluster {
@@ -621,6 +669,7 @@ impl TryFrom<&Cluster> for ExecAuthCluster {
                     .find(|extension| extension.name == CLUSTER_EXTENSION_KEY)
                     .map(|extension| extension.extension.clone())
             }),
+            ..Default::default()
         })
     }
 }
@@ -710,6 +759,7 @@ mod tests {
                     token: Some(SecretString::new("first-token".into())),
                     ..Default::default()
                 }),
+                ..Default::default()
             }],
             ..Default::default()
         };
@@ -723,6 +773,7 @@ mod tests {
                         username: Some("red-user".into()),
                         ..Default::default()
                     }),
+                    ..Default::default()
                 },
                 NamedAuthInfo {
                     name: "green-user".into(),
@@ -730,6 +781,7 @@ mod tests {
                         token: Some(SecretString::new("new-token".into())),
                         ..Default::default()
                     }),
+                    ..Default::default()
                 },
             ],
             ..Default::default()
@@ -950,7 +1002,8 @@ password: kube_rs
         client_key_data: None, impersonate: None, \
         impersonate_groups: None, \
         auth_provider: None, \
-        exec: None \
+        exec: None, \
+        extra: {} \
         }";
 
         assert_eq!(authinfo_debug_output, expected_output)
@@ -1019,5 +1072,169 @@ users:
             assert_eq!(cfg.contexts[0].name, "k3d-promstack");
             assert_eq!(cfg.auth_infos[0].name, "admin@k3d-k3s-default");
         }
+    }
+
+    #[test]
+    fn kubeconfig_roundtrip_preserves_unknown_fields() {
+        let input = r#"apiVersion: v1
+kind: Config
+current-context: test
+customTopLevel: should-survive
+preferences:
+  colors: true
+  prefExtra: pref-value
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://localhost:6443
+    custom-cluster-field: cluster-value
+  clusterLevelExtra: extra1
+contexts:
+- name: test-context
+  context:
+    cluster: test-cluster
+    user: test-user
+    custom-context-field: context-value
+  contextLevelExtra: extra2
+users:
+- name: test-user
+  userLevelExtra: extra3
+  user:
+    token: secret-token
+    customAuthField: auth-value
+    auth-provider:
+      name: oidc
+      config:
+        client-id: my-id
+      providerExtra: provider-value
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: kubelogin
+      args:
+      - get-token
+      installHint: install kubelogin
+      provideClusterInfo: false
+"#;
+        let cfg: Kubeconfig = serde_yaml::from_str(input).unwrap();
+
+        // Verify extra fields are accessible through the public accessor methods
+        assert_eq!(
+            cfg.extra.get("customTopLevel").and_then(|v| v.as_str()),
+            Some("should-survive")
+        );
+        assert_eq!(
+            cfg.clusters[0]
+                .extra
+                .get("clusterLevelExtra")
+                .and_then(|v| v.as_str()),
+            Some("extra1")
+        );
+        let exec = cfg.auth_infos[0]
+            .auth_info
+            .as_ref()
+            .unwrap()
+            .exec
+            .as_ref()
+            .unwrap();
+        assert_eq!(
+            exec.extra.get("installHint").and_then(|v| v.as_str()),
+            Some("install kubelogin")
+        );
+
+        // Round-trip through serialization
+        let output = serde_yaml::to_string(&cfg).unwrap();
+
+        // Verify unknown fields at every nesting level survive
+        let checks = [
+            ("customTopLevel", "top-level"),
+            ("prefExtra", "preferences-level"),
+            ("custom-cluster-field", "cluster-level"),
+            ("clusterLevelExtra", "named-cluster-level"),
+            ("custom-context-field", "context-level"),
+            ("contextLevelExtra", "named-context-level"),
+            ("userLevelExtra", "named-auth-info-level"),
+            ("customAuthField", "auth-info-level"),
+            ("providerExtra", "auth-provider-level"),
+            ("installHint", "exec-config-level"),
+        ];
+        for (field, level) in checks {
+            assert!(output.contains(field), "{level} unknown field '{field}' lost:\n{output}");
+        }
+
+        // Values must survive too
+        assert!(output.contains("install kubelogin"), "installHint value lost:\n{output}");
+        assert!(output.contains("pref-value"), "prefExtra value lost:\n{output}");
+        assert!(output.contains("provider-value"), "providerExtra value lost:\n{output}");
+
+        // Verify known fields are not corrupted
+        assert!(output.contains("https://localhost:6443"));
+        assert!(output.contains("kubelogin"));
+        assert!(output.contains("current-context:"));
+
+        // Full structural round-trip: re-parse the output and compare
+        let cfg2: Kubeconfig = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(cfg.current_context, cfg2.current_context);
+        assert_eq!(cfg.clusters[0].name, cfg2.clusters[0].name);
+        assert_eq!(cfg.extra, cfg2.extra);
+        assert_eq!(cfg.clusters[0].extra, cfg2.clusters[0].extra);
+        let exec2 = cfg2.auth_infos[0]
+            .auth_info
+            .as_ref()
+            .unwrap()
+            .exec
+            .as_ref()
+            .unwrap();
+        assert_eq!(exec.extra, exec2.extra);
+    }
+
+    #[test]
+    fn kubeconfig_merge_preserves_unknown_fields() {
+        let config1 = r#"
+apiVersion: v1
+kind: Config
+current-context: ctx1
+vendorField1: from-first
+sharedField: first-wins
+clusters:
+- name: cluster1
+  cluster:
+    server: https://first:6443
+"#;
+        let config2 = r#"
+apiVersion: v1
+kind: Config
+vendorField2: from-second
+sharedField: should-lose
+clusters:
+- name: cluster2
+  cluster:
+    server: https://second:6443
+"#;
+        let kc1 = Kubeconfig::from_yaml(config1).unwrap();
+        let kc2 = Kubeconfig::from_yaml(config2).unwrap();
+        let merged = kc1.merge(kc2).unwrap();
+
+        // Both vendor fields are present
+        assert_eq!(
+            merged.extra.get("vendorField1").and_then(|v| v.as_str()),
+            Some("from-first"),
+            "extra from first config lost after merge"
+        );
+        assert_eq!(
+            merged.extra.get("vendorField2").and_then(|v| v.as_str()),
+            Some("from-second"),
+            "extra from second config lost after merge"
+        );
+        // First config wins on conflict
+        assert_eq!(
+            merged.extra.get("sharedField").and_then(|v| v.as_str()),
+            Some("first-wins"),
+            "merge should prefer first config's extra fields"
+        );
+
+        // Round-trip the merged result
+        let output = serde_yaml::to_string(&merged).unwrap();
+        assert!(output.contains("vendorField1"), "vendorField1 lost in merged output:\n{output}");
+        assert!(output.contains("vendorField2"), "vendorField2 lost in merged output:\n{output}");
     }
 }
