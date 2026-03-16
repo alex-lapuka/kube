@@ -55,7 +55,8 @@ pub struct Kubeconfig {
     pub api_version: Option<String>,
 
     #[serde(flatten)]
-    pub(crate) extra: BTreeMap<String, serde_json::Value>,
+    #[doc(hidden)]
+    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// Preferences stores extensions for cli.
@@ -70,7 +71,8 @@ pub struct Preferences {
     pub extensions: Option<Vec<NamedExtension>>,
 
     #[serde(flatten)]
-    pub(crate) extra: BTreeMap<String, serde_json::Value>,
+    #[doc(hidden)]
+    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// NamedExtension associates name with extension.
@@ -84,7 +86,8 @@ pub struct NamedExtension {
     pub extension: serde_json::Value,
 
     #[serde(flatten)]
-    pub(crate) extra: BTreeMap<String, serde_json::Value>,
+    #[doc(hidden)]
+    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 /// NamedCluster associates name with cluster.
