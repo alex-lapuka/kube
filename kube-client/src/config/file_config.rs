@@ -261,10 +261,18 @@ pub struct AuthInfo {
     #[serde(rename = "as")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub impersonate: Option<String>,
+    /// The uid to impersonate.
+    #[serde(rename = "as-uid")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impersonate_uid: Option<String>,
     /// The groups to imperonate.
     #[serde(rename = "as-groups")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub impersonate_groups: Option<Vec<String>>,
+    /// Additional information for impersonated user.
+    #[serde(rename = "as-user-extra")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impersonate_user_extra: Option<HashMap<String, Vec<String>>>,
 
     /// Specifies a custom authentication plugin for the kubernetes cluster.
     #[serde(rename = "auth-provider")]
@@ -274,6 +282,10 @@ pub struct AuthInfo {
     /// Specifies a custom exec-based authentication plugin for the kubernetes cluster.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub exec: Option<ExecConfig>,
+
+    /// Additional information for extenders so that reads and writes don't clobber unknown fields.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extensions: Option<Vec<NamedExtension>>,
 
     /// Additional fields not explicitly modeled, preserved for round-trip serialization.
     ///
@@ -335,6 +347,12 @@ pub struct ExecConfig {
     /// It has been suggested in client-go via <https://github.com/kubernetes/client-go/issues/1177>
     #[serde(skip)]
     pub drop_env: Option<Vec<String>>,
+
+    /// This text is shown to the user when the executable doesn't seem to be present.
+    /// For example, `brew install foo-cli` might be a good InstallHint for foo-cli on Mac OS systems.
+    #[serde(rename = "installHint")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_hint: Option<String>,
 
     /// Interactive mode of the auth plugins
     #[serde(rename = "interactiveMode")]
@@ -1025,9 +1043,12 @@ password: kube_rs
         token: None, token_file: None, client_certificate: None, \
         client_certificate_data: None, client_key: None, \
         client_key_data: None, impersonate: None, \
+        impersonate_uid: None, \
         impersonate_groups: None, \
+        impersonate_user_extra: None, \
         auth_provider: None, \
         exec: None, \
+        extensions: None, \
         other: {} \
         }";
 
@@ -1166,6 +1187,157 @@ users:
         );
 
         // Verify re-deserialization produces the same result
+        let reparsed = Kubeconfig::from_yaml(&serialized).unwrap();
+        assert_eq!(config, reparsed);
+    }
+
+    #[test]
+    fn authinfo_deserializes_impersonate_uid_and_user_extra() {
+        let yaml = r#"
+apiVersion: v1
+kind: Config
+current-context: test
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://localhost:6443
+contexts:
+- name: test
+  context:
+    cluster: test-cluster
+    user: test-user
+users:
+- name: test-user
+  user:
+    token: my-token
+    as: admin
+    as-uid: "12345"
+    as-groups:
+    - group1
+    - group2
+    as-user-extra:
+      scopes:
+      - read
+      - write
+      department:
+      - engineering
+"#;
+
+        let config = Kubeconfig::from_yaml(yaml).unwrap();
+        let auth_info = config.auth_infos[0].auth_info.as_ref().unwrap();
+
+        assert_eq!(auth_info.impersonate.as_deref(), Some("admin"));
+        assert_eq!(auth_info.impersonate_uid.as_deref(), Some("12345"));
+        assert_eq!(
+            auth_info.impersonate_groups.as_deref(),
+            Some(vec!["group1".to_string(), "group2".to_string()].as_slice())
+        );
+
+        let extra = auth_info.impersonate_user_extra.as_ref().unwrap();
+        assert_eq!(
+            extra.get("scopes").unwrap(),
+            &vec!["read".to_string(), "write".to_string()]
+        );
+        assert_eq!(
+            extra.get("department").unwrap(),
+            &vec!["engineering".to_string()]
+        );
+
+        // Round-trip: serialize and re-deserialize
+        let serialized = serde_yaml::to_string(&config).unwrap();
+        assert!(serialized.contains("as-uid"), "as-uid was lost:\n{serialized}");
+        assert!(
+            serialized.contains("as-user-extra"),
+            "as-user-extra was lost:\n{serialized}"
+        );
+        let reparsed = Kubeconfig::from_yaml(&serialized).unwrap();
+        assert_eq!(config, reparsed);
+    }
+
+    #[test]
+    fn authinfo_deserializes_extensions() {
+        let yaml = r#"
+apiVersion: v1
+kind: Config
+current-context: test
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://localhost:6443
+contexts:
+- name: test
+  context:
+    cluster: test-cluster
+    user: test-user
+users:
+- name: test-user
+  user:
+    token: my-token
+    extensions:
+    - name: custom-ext
+      extension:
+        key: value
+"#;
+
+        let config = Kubeconfig::from_yaml(yaml).unwrap();
+        let auth_info = config.auth_infos[0].auth_info.as_ref().unwrap();
+
+        let extensions = auth_info.extensions.as_ref().unwrap();
+        assert_eq!(extensions.len(), 1);
+        assert_eq!(extensions[0].name, "custom-ext");
+
+        // Round-trip
+        let serialized = serde_yaml::to_string(&config).unwrap();
+        let reparsed = Kubeconfig::from_yaml(&serialized).unwrap();
+        assert_eq!(config, reparsed);
+    }
+
+    #[test]
+    fn exec_config_deserializes_install_hint() {
+        let yaml = r#"
+apiVersion: v1
+kind: Config
+current-context: test
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://localhost:6443
+contexts:
+- name: test
+  context:
+    cluster: test-cluster
+    user: test-user
+users:
+- name: test-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: gke-gcloud-auth-plugin
+      installHint: "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl"
+      provideClusterInfo: true
+      interactiveMode: IfAvailable
+"#;
+
+        let config = Kubeconfig::from_yaml(yaml).unwrap();
+        let exec = config.auth_infos[0]
+            .auth_info
+            .as_ref()
+            .unwrap()
+            .exec
+            .as_ref()
+            .unwrap();
+
+        assert_eq!(
+            exec.install_hint.as_deref(),
+            Some("Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl")
+        );
+
+        // Round-trip
+        let serialized = serde_yaml::to_string(&config).unwrap();
+        assert!(
+            serialized.contains("installHint"),
+            "installHint was lost:\n{serialized}"
+        );
         let reparsed = Kubeconfig::from_yaml(&serialized).unwrap();
         assert_eq!(config, reparsed);
     }
